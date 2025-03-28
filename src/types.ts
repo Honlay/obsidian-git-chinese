@@ -1,4 +1,5 @@
 import type { LineAuthorSettings } from "src/lineAuthor/model";
+import type { Language } from "src/i18n";
 
 export interface ObsidianGitSettings {
     commitMessage: string;
@@ -56,6 +57,10 @@ export interface ObsidianGitSettings {
     authorInHistoryView: ShowAuthorInHistoryView;
     dateInHistoryView: boolean;
     diffStyle: "git_unified" | "split";
+    /**
+     * Interface language for the plugin
+     */
+    language: Language;
 }
 
 /**

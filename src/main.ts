@@ -52,6 +52,7 @@ import { BranchStatusBar } from "./ui/statusBar/branchStatusBar";
 import { formatRemoteUrl, splitRemoteBranch } from "./utils";
 import Tools from "./tools";
 import SplitDiffView from "./ui/diff/splitDiffView";
+import { setLocale, t } from "./i18n";
 
 export default class ObsidianGit extends Plugin {
     gitManager: GitManager;
@@ -143,6 +144,9 @@ export default class ObsidianGit extends Plugin {
         this.localStorage.migrate();
         await this.loadSettings();
         await this.migrateSettings();
+        
+        // 设置界面语言
+        setLocale(this.settings.language);
 
         this.settingsTab = new ObsidianGitSettingsTab(this.app, this);
         this.addSettingTab(this.settingsTab);
@@ -863,7 +867,7 @@ export default class ObsidianGit extends Plugin {
                 ) {
                     if (!this.settings.disablePopups && fromAuto) {
                         new Notice(
-                            "Auto backup: Please enter a custom commit message. Leave empty to abort"
+                            t("modals.autoBackupPrompt")
                         );
                     }
                     const tempMessage = await new CustomMessageModal(

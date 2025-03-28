@@ -1,9 +1,11 @@
 import { SuggestModal } from "obsidian";
 import type ObsidianGit from "src/main";
+import { t } from "src/i18n";
 
 export interface OptionalGeneralModalConfig {
     options?: string[];
     placeholder?: string;
+    placeholderKey?: string;
     allowEmpty?: boolean;
     onlySelection?: boolean;
     initialValue?: string;
@@ -12,6 +14,7 @@ export interface OptionalGeneralModalConfig {
 interface GeneralModalConfig {
     options: string[];
     placeholder: string;
+    placeholderKey?: string;
     allowEmpty: boolean;
     onlySelection: boolean;
     initialValue?: string;
@@ -36,7 +39,13 @@ export class GeneralModal extends SuggestModal<string> {
     constructor(plugin: ObsidianGit, config: OptionalGeneralModalConfig) {
         super(plugin.app);
         this.config = { ...generalModalConfigDefaults, ...config };
-        this.setPlaceholder(this.config.placeholder);
+        
+        if (this.config.placeholderKey) {
+            this.setPlaceholder(t(this.config.placeholderKey));
+        } else {
+            this.setPlaceholder(this.config.placeholder);
+        }
+        
         if (this.config.obscure) {
             this.inputEl.type = "password";
             const promptContainer = this.containerEl.querySelector(

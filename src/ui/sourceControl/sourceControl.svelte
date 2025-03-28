@@ -17,6 +17,7 @@
     import TreeComponent from "./components/treeComponent.svelte";
     import type GitView from "./sourceControl";
     import TooManyFilesComponent from "./components/tooManyFilesComponent.svelte";
+    import { t } from "src/i18n";
 
     interface Props {
         plugin: ObsidianGit;
@@ -231,7 +232,7 @@
                 id="backup-btn"
                 data-icon="arrow-up-circle"
                 class="clickable-icon nav-action-button"
-                aria-label="Commit-and-sync"
+                aria-label={t("commands.commitAndSync")}
                 bind:this={buttons[0]}
                 onclick={commitAndSync}
             ></div>
@@ -239,7 +240,7 @@
                 id="commit-btn"
                 data-icon="check"
                 class="clickable-icon nav-action-button"
-                aria-label="Commit"
+                aria-label={t("commands.commitChanges")}
                 bind:this={buttons[1]}
                 onclick={commit}
             ></div>
@@ -247,7 +248,7 @@
                 id="stage-all"
                 class="clickable-icon nav-action-button"
                 data-icon="plus-circle"
-                aria-label="Stage all"
+                aria-label={t("sourceControl.stageAll")}
                 bind:this={buttons[2]}
                 onclick={stageAll}
             ></div>
@@ -255,7 +256,7 @@
                 id="unstage-all"
                 class="clickable-icon nav-action-button"
                 data-icon="minus-circle"
-                aria-label="Unstage all"
+                aria-label={t("sourceControl.unstageAll")}
                 bind:this={buttons[3]}
                 onclick={unstageAll}
             ></div>
@@ -263,7 +264,7 @@
                 id="push"
                 class="clickable-icon nav-action-button"
                 data-icon="upload"
-                aria-label="Push"
+                aria-label={t("commands.push")}
                 bind:this={buttons[4]}
                 onclick={push}
             ></div>
@@ -271,14 +272,14 @@
                 id="pull"
                 class="clickable-icon nav-action-button"
                 data-icon="download"
-                aria-label="Pull"
+                aria-label={t("commands.pull")}
                 bind:this={buttons[5]}
                 onclick={pull}
             ></div>
             <div
                 id="layoutChange"
                 class="clickable-icon nav-action-button"
-                aria-label="Change Layout"
+                aria-label={t("sourceControl.changeLayout")}
                 data-icon={showTree ? "list" : "folder"}
                 bind:this={buttons[6]}
                 onclick={() => {
@@ -293,7 +294,7 @@
                 class="clickable-icon nav-action-button"
                 class:loading
                 data-icon="refresh-cw"
-                aria-label="Refresh"
+                aria-label={t("sourceControl.refresh")}
                 bind:this={buttons[7]}
                 onclick={triggerRefresh}
             ></div>
@@ -304,14 +305,14 @@
             {rows}
             class="commit-msg-input"
             spellcheck="true"
-            placeholder="Commit Message"
+            placeholder={t("modals.commitPrompt")}
             bind:value={commitMessage}
         ></textarea>
         {#if commitMessage}
             <div
                 class="git-commit-msg-clear-button"
                 onclick={() => (commitMessage = "")}
-                aria-label={"Clear"}
+                aria-label={t("sourceControl.clear")}
             ></div>
         {/if}
     </div>
@@ -346,14 +347,14 @@
                             >
                         </div>
                         <div class="tree-item-inner nav-folder-title-content">
-                            Staged Changes
+                            {t("sourceControl.stagedChanges")}
                         </div>
 
                         <div class="git-tools">
                             <div class="buttons">
                                 <div
                                     data-icon="minus"
-                                    aria-label="Unstage"
+                                    aria-label={t("sourceControl.unstage")}
                                     bind:this={buttons[8]}
                                     onclick={unstageAll}
                                     class="clickable-icon"
@@ -436,13 +437,13 @@
                         </div>
 
                         <div class="tree-item-inner nav-folder-title-content">
-                            Changes
+                            {t("sourceControl.changes")}
                         </div>
                         <div class="git-tools">
                             <div class="buttons">
                                 <div
                                     data-icon="undo"
-                                    aria-label="Discard"
+                                    aria-label={t("sourceControl.discard")}
                                     onclick={discard}
                                     class="clickable-icon"
                                 >
@@ -464,7 +465,7 @@
                                 </div>
                                 <div
                                     data-icon="plus"
-                                    aria-label="Stage"
+                                    aria-label={t("sourceControl.stage")}
                                     bind:this={buttons[9]}
                                     onclick={stageAll}
                                     class="clickable-icon"
@@ -556,7 +557,7 @@
                             <div
                                 class="tree-item-inner nav-folder-title-content"
                             >
-                                Recently Pulled Files
+                                {t("sourceControl.recentlyPulledFiles")}
                             </div>
 
                             <span class="tree-item-flair"

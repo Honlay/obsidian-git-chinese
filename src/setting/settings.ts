@@ -1,12 +1,5 @@
-import type { App, RGB, TextComponent } from "obsidian";
-import {
-    moment,
-    Notice,
-    Platform,
-    PluginSettingTab,
-    Setting,
-    TextAreaComponent,
-} from "obsidian";
+import type { App, RGB } from "obsidian";
+import { moment, Notice, Platform, PluginSettingTab, Setting } from "obsidian";
 import {
     DATE_TIME_FORMAT_SECONDS,
     DEFAULT_SETTINGS,
@@ -28,7 +21,8 @@ import type {
     ShowAuthorInHistoryView,
     SyncMethod,
 } from "src/types";
-import { convertToRgb, formatMinutes, rgbToString } from "src/utils";
+import { convertToRgb, rgbToString, formatMinutes } from "src/utils";
+import { getAvailableLanguages, setLocale, t } from "src/i18n";
 
 const FORMAT_STRING_REFERENCE_URL =
     "https://momentjs.com/docs/#/parsing/string-format/";
@@ -62,21 +56,39 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         const gitReady = plugin.gitReady;
 
         containerEl.empty();
+        
+        new Setting(containerEl).setName(t("settings.general")).setHeading();
+        
+        new Setting(containerEl)
+            .setName(t("settings.language"))
+            .setDesc(t("settings.languageDesc"))
+            .addDropdown((dropdown) => {
+                const languages = getAvailableLanguages();
+                languages.forEach((lang) => {
+                    dropdown.addOption(lang.value, lang.label);
+                });
+                dropdown.setValue(plugin.settings.language);
+                dropdown.onChange(async (value) => {
+                    plugin.settings.language = value as any;
+                    setLocale(value as any);
+                    await plugin.saveSettings();
+                    this.display();
+                });
+            });
+            
         if (!gitReady) {
             containerEl.createEl("p", {
-                text: "Git is not ready. When all settings are correct you can configure commit-sync, etc.",
+                text: t("settings.notReady"),
             });
             containerEl.createEl("br");
         }
 
         let setting: Setting;
         if (gitReady) {
-            new Setting(containerEl).setName("Automatic").setHeading();
+            new Setting(containerEl).setName(t("settings.automatic")).setHeading();
             new Setting(containerEl)
-                .setName("Split timers for automatic commit and sync")
-                .setDesc(
-                    "Enable to use one interval for commit and another for sync."
-                )
+                .setName(t("settings.splitTimers"))
+                .setDesc(t("settings.splitTimersDesc"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(
@@ -87,56 +99,46 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                                 value;
                             await plugin.saveSettings();
                             plugin.automaticsManager.reload("commit", "push");
-                            this.refreshDisplayWithDelay();
+                            this.display();
                         })
                 );
 
+            const intervalName = plugin.settings.differentIntervalCommitAndPush
+                ? "settings.autoCommitInterval"
+                : "settings.autoCommitAndSyncInterval";
+            const intervalDesc = plugin.settings.differentIntervalCommitAndPush
+                ? "settings.autoCommitIntervalDesc"
+                : "settings.autoCommitAndSyncIntervalDesc";
+
             new Setting(containerEl)
-                .setName(`Auto ${commitOrSync} interval (minutes)`)
-                .setDesc(
-                    `${
-                        plugin.settings.differentIntervalCommitAndPush
-                            ? "Commit"
-                            : "Commit and sync"
-                    } changes every X minutes. Set to 0 (default) to disable. (See below setting for further configuration!)`
-                )
+                .setName(t(intervalName))
+                .setDesc(t(intervalDesc))
                 .addText((text) => {
                     text.inputEl.type = "number";
-                    this.setNonDefaultValue({
-                        text,
-                        settingsProperty: "autoSaveInterval",
-                    });
+                    text.setValue(String(plugin.settings.autoSaveInterval));
                     text.setPlaceholder(
                         String(DEFAULT_SETTINGS.autoSaveInterval)
                     );
                     text.onChange(async (value) => {
-                        if (value !== "") {
-                            plugin.settings.autoSaveInterval = Number(value);
-                        } else {
-                            plugin.settings.autoSaveInterval =
-                                DEFAULT_SETTINGS.autoSaveInterval;
-                        }
+                        plugin.settings.autoSaveInterval = Number(value);
                         await plugin.saveSettings();
                         plugin.automaticsManager.reload("commit");
                     });
                 });
 
             setting = new Setting(containerEl)
-                .setName(`Auto ${commitOrSync} after stopping file edits`)
+                .setName(t("settings.autoCommitAfterFileEdits", commitOrSync))
                 .setDesc(
-                    `Requires the ${commitOrSync} interval not to be 0.
-                        If turned on, do auto ${commitOrSync} every ${formatMinutes(
-                            plugin.settings.autoSaveInterval
-                        )} after stopping file edits.
-                        This also prevents auto ${commitOrSync} while editing a file. If turned off, it's independent from the last file edit.`
+                    t("settings.autoCommitAfterFileEditsDesc", 
+                      commitOrSync, 
+                      formatMinutes(plugin.settings.autoSaveInterval))
                 )
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.autoBackupAfterFileChange)
                         .onChange(async (value) => {
                             plugin.settings.autoBackupAfterFileChange = value;
-                            this.refreshDisplayWithDelay();
-
+                            this.display();
                             await plugin.saveSettings();
                             plugin.automaticsManager.reload("commit");
                         })
@@ -147,10 +149,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
             setting = new Setting(containerEl)
-                .setName(`Auto ${commitOrSync} after latest commit`)
-                .setDesc(
-                    `If turned on, sets last auto ${commitOrSync} timestamp to the latest commit timestamp. This reduces the frequency of auto ${commitOrSync} when doing manual commits.`
-                )
+                .setName(t("settings.autoCommitAfterLatestCommit", commitOrSync))
+                .setDesc(t("settings.autoCommitAfterLatestCommitDesc", commitOrSync))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.setLastSaveToLastCommit)
@@ -158,7 +158,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             plugin.settings.setLastSaveToLastCommit = value;
                             await plugin.saveSettings();
                             plugin.automaticsManager.reload("commit");
-                            this.refreshDisplayWithDelay();
+                            this.display();
                         })
                 );
             this.mayDisableSetting(
@@ -167,26 +167,16 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
             setting = new Setting(containerEl)
-                .setName(`Auto push interval (minutes)`)
-                .setDesc(
-                    "Push commits every X minutes. Set to 0 (default) to disable."
-                )
+                .setName(t("settings.autoPushInterval"))
+                .setDesc(t("settings.autoPushIntervalDesc"))
                 .addText((text) => {
                     text.inputEl.type = "number";
-                    this.setNonDefaultValue({
-                        text,
-                        settingsProperty: "autoPushInterval",
-                    });
+                    text.setValue(String(plugin.settings.autoPushInterval));
                     text.setPlaceholder(
                         String(DEFAULT_SETTINGS.autoPushInterval)
                     );
                     text.onChange(async (value) => {
-                        if (value !== "") {
-                            plugin.settings.autoPushInterval = Number(value);
-                        } else {
-                            plugin.settings.autoPushInterval =
-                                DEFAULT_SETTINGS.autoPushInterval;
-                        }
+                        plugin.settings.autoPushInterval = Number(value);
                         await plugin.saveSettings();
                         plugin.automaticsManager.reload("push");
                     });
@@ -197,102 +187,72 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
             new Setting(containerEl)
-                .setName("Auto pull interval (minutes)")
-                .setDesc(
-                    "Pull changes every X minutes. Set to 0 (default) to disable."
-                )
+                .setName(t("settings.autoPullInterval"))
+                .setDesc(t("settings.autoPullIntervalDesc"))
                 .addText((text) => {
                     text.inputEl.type = "number";
-                    this.setNonDefaultValue({
-                        text,
-                        settingsProperty: "autoPullInterval",
-                    });
+                    text.setValue(String(plugin.settings.autoPullInterval));
                     text.setPlaceholder(
                         String(DEFAULT_SETTINGS.autoPullInterval)
                     );
                     text.onChange(async (value) => {
-                        if (value !== "") {
-                            plugin.settings.autoPullInterval = Number(value);
-                        } else {
-                            plugin.settings.autoPullInterval =
-                                DEFAULT_SETTINGS.autoPullInterval;
-                        }
+                        plugin.settings.autoPullInterval = Number(value);
                         await plugin.saveSettings();
                         plugin.automaticsManager.reload("pull");
                     });
                 });
 
             new Setting(containerEl)
-                .setName(
-                    `Specify custom commit message on auto ${commitOrSync}`
-                )
-                .setDesc("You will get a pop up to specify your message.")
+                .setName(t("settings.customMessageOnAutoBackup"))
+                .setDesc(t("settings.customMessageOnAutoBackupDesc"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.customMessageOnAutoBackup)
                         .onChange(async (value) => {
                             plugin.settings.customMessageOnAutoBackup = value;
                             await plugin.saveSettings();
-                            this.refreshDisplayWithDelay();
+                            this.display();
                         })
                 );
 
             setting = new Setting(containerEl)
-                .setName(`Commit message on auto ${commitOrSync}`)
-                .setDesc(
-                    "Available placeholders: {{date}}" +
-                        " (see below), {{hostname}} (see below), {{numFiles}} (number of changed files in the commit) and {{files}} (changed files in commit message)."
-                )
-                .addTextArea((text) => {
-                    text.setPlaceholder(
-                        DEFAULT_SETTINGS.autoCommitMessage
-                    ).onChange(async (value) => {
-                        if (value === "") {
-                            plugin.settings.autoCommitMessage =
-                                DEFAULT_SETTINGS.autoCommitMessage;
-                        } else {
+                .setName(t("settings.commitMessageOnAutoCommit", commitOrSync))
+                .setDesc(t("settings.commitMessagePlaceholdersDesc"))
+                .addTextArea((text) =>
+                    text
+                        .setPlaceholder(t("settings.commitMessagePlaceholder"))
+                        .setValue(plugin.settings.autoCommitMessage)
+                        .onChange(async (value) => {
                             plugin.settings.autoCommitMessage = value;
-                        }
-                        await plugin.saveSettings();
-                    });
-                    this.setNonDefaultValue({
-                        text,
-                        settingsProperty: "autoCommitMessage",
-                    });
-                });
+                            await plugin.saveSettings();
+                        })
+                );
             this.mayDisableSetting(
                 setting,
                 plugin.settings.customMessageOnAutoBackup
             );
 
-            new Setting(containerEl).setName("Commit message").setHeading();
+            new Setting(containerEl).setName(t("settings.commitMessage")).setHeading();
 
             new Setting(containerEl)
-                .setName("Commit message on manual commit")
-                .setDesc(
-                    "Available placeholders: {{date}}" +
-                        " (see below), {{hostname}} (see below), {{numFiles}} (number of changed files in the commit) and {{files}} (changed files in commit message)."
-                )
-                .addTextArea((text) => {
-                    text.setPlaceholder(
-                        DEFAULT_SETTINGS.commitMessage
-                    ).onChange(async (value) => {
-                        if (value === "") {
-                            plugin.settings.commitMessage =
-                                DEFAULT_SETTINGS.commitMessage;
-                        } else {
+                .setName(t("settings.commitMessageOnManualCommit"))
+                .setDesc(t("settings.commitMessagePlaceholdersDesc"))
+                .addTextArea((text) =>
+                    text
+                        .setPlaceholder(t("settings.commitMessagePlaceholder"))
+                        .setValue(
+                            plugin.settings.commitMessage
+                                ? plugin.settings.commitMessage
+                                : ""
+                        )
+                        .onChange(async (value) => {
                             plugin.settings.commitMessage = value;
-                        }
-                        await plugin.saveSettings();
-                    });
-                    this.setNonDefaultValue({
-                        text,
-                        settingsProperty: "commitMessage",
-                    });
-                });
+                            await plugin.saveSettings();
+                        })
+                );
 
             const datePlaceholderSetting = new Setting(containerEl)
-                .setName("{{date}} placeholder format")
+                .setName(t("settings.commitDateFormat"))
                 .addMomentFormat((text) =>
                     text
                         .setDefaultFormat(plugin.settings.commitDateFormat)
@@ -302,12 +262,11 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             await plugin.saveSettings();
                         })
                 );
-            datePlaceholderSetting.descEl.innerHTML = `
-            Specify custom date format. E.g. "${DATE_TIME_FORMAT_SECONDS}. See <a href="https://momentjs.com">Moment.js</a> for more formats.`;
+            datePlaceholderSetting.descEl.innerHTML = t("settings.commitDateFormatDescHtml", DATE_TIME_FORMAT_SECONDS);
 
             new Setting(containerEl)
-                .setName("{{hostname}} placeholder replacement")
-                .setDesc("Specify custom hostname for every device.")
+                .setName(t("settings.hostnameReplacementName"))
+                .setDesc(t("settings.hostnameReplacementDesc"))
                 .addText((text) =>
                     text
                         .setValue(plugin.localStorage.getHostname() ?? "")
@@ -317,9 +276,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 );
 
             new Setting(containerEl)
-                .setName("Preview commit message")
+                .setName(t("settings.previewCommitMessage"))
                 .addButton((button) =>
-                    button.setButtonText("Preview").onClick(async () => {
+                    button.setButtonText(t("settings.previewButtonText")).onClick(async () => {
                         const commitMessagePreview =
                             await plugin.gitManager.formatCommitMessage(
                                 plugin.settings.commitMessage
@@ -329,7 +288,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 );
 
             new Setting(containerEl)
-                .setName("List filenames affected by commit in the commit body")
+                .setName(t("settings.listFilenamesInBody"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.listChangedFilesInMessageBody)
@@ -340,19 +299,17 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                         })
                 );
 
-            new Setting(containerEl).setName("Pull").setHeading();
+            new Setting(containerEl).setName(t("settings.pullHeading")).setHeading();
 
             if (plugin.gitManager instanceof SimpleGit)
                 new Setting(containerEl)
-                    .setName("Merge strategy")
-                    .setDesc(
-                        "Decide how to integrate commits from your remote branch into your local branch."
-                    )
+                    .setName(t("settings.mergeStrategy"))
+                    .setDesc(t("settings.mergeStrategyDesc"))
                     .addDropdown((dropdown) => {
                         const options: Record<SyncMethod, string> = {
-                            merge: "Merge",
-                            rebase: "Rebase",
-                            reset: "Other sync service (Only updates the HEAD without touching the working directory)",
+                            merge: t("settings.syncOptions.merge"),
+                            rebase: t("settings.syncOptions.rebase"),
+                            reset: t("settings.syncOptions.reset"),
                         };
                         dropdown.addOptions(options);
                         dropdown.setValue(plugin.settings.syncMethod);
@@ -364,8 +321,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     });
 
             new Setting(containerEl)
-                .setName("Pull on startup")
-                .setDesc("Automatically pull commits when Obsidian starts.")
+                .setName(t("settings.pullOnStartup"))
+                .setDesc(t("settings.pullOnStartupDesc"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.autoPullOnBoot)
@@ -376,61 +333,55 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 );
 
             new Setting(containerEl)
-                .setName("Commit-and-sync")
-                .setDesc(
-                    "Commit-and-sync with default settings means staging everything -> committing -> pulling -> pushing. Ideally this is a single action that you do regularly to keep your local and remote repository in sync."
-                )
+                .setName(t("settings.commitAndSync"))
+                .setDesc(t("settings.commitAndSyncDesc"))
                 .setHeading();
 
             setting = new Setting(containerEl)
-                .setName("Push on commit-and-sync")
-                .setDesc(
-                    `Most of the time you want to push after committing. Turning this off turns a commit-and-sync action into commit ${plugin.settings.pullBeforePush ? "and pull " : ""}only. It will still be called commit-and-sync.`
-                )
+                .setName(t("settings.pushOnCommitSync"))
+                .setDesc(t("settings.pushOnCommitSyncDesc"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(!plugin.settings.disablePush)
                         .onChange(async (value) => {
                             plugin.settings.disablePush = !value;
-                            this.refreshDisplayWithDelay();
+                            this.display();
                             await plugin.saveSettings();
                         })
                 );
 
             new Setting(containerEl)
-                .setName("Pull on commit-and-sync")
-                .setDesc(
-                    `On commit-and-sync, pull commits as well. Turning this off turns a commit-and-sync action into commit ${plugin.settings.disablePush ? "" : "and push "}only.`
-                )
+                .setName(t("settings.pullOnCommitSync"))
+                .setDesc(t("settings.pullOnCommitSyncDesc"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.pullBeforePush)
                         .onChange(async (value) => {
                             plugin.settings.pullBeforePush = value;
-                            this.refreshDisplayWithDelay();
+                            this.display();
                             await plugin.saveSettings();
                         })
                 );
 
             if (plugin.gitManager instanceof SimpleGit) {
                 new Setting(containerEl)
-                    .setName("Line author information")
+                    .setName(t("settings.lineAuthorInfo"))
                     .setHeading();
 
                 this.addLineAuthorInfoSettings();
             }
         }
 
-        new Setting(containerEl).setName("History view").setHeading();
+        new Setting(containerEl).setName(t("settings.historyView")).setHeading();
 
         new Setting(containerEl)
-            .setName("Show Author")
-            .setDesc("Show the author of the commit in the history view.")
+            .setName(t("settings.showAuthor"))
+            .setDesc(t("settings.showAuthorDesc"))
             .addDropdown((dropdown) => {
                 const options: Record<ShowAuthorInHistoryView, string> = {
-                    hide: "Hide",
-                    full: "Full",
-                    initials: "Initials",
+                    hide: t("settings.authorOptions.hide"),
+                    full: t("settings.authorOptions.full"),
+                    initials: t("settings.authorOptions.initials"),
                 };
                 dropdown.addOptions(options);
                 dropdown.setValue(plugin.settings.authorInHistoryView);
@@ -442,10 +393,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName("Show Date")
-            .setDesc(
-                "Show the date of the commit in the history view. The {{date}} placeholder format is used to display the date."
-            )
+            .setName(t("settings.showDate"))
+            .setDesc(t("settings.showDateDesc"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.dateInHistoryView)
@@ -456,15 +405,11 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     })
             );
 
-        new Setting(containerEl).setName("Source control view").setHeading();
+        new Setting(containerEl).setName(t("settings.sourceControlView")).setHeading();
 
         new Setting(containerEl)
-            .setName(
-                "Automatically refresh source control view on file changes"
-            )
-            .setDesc(
-                "On slower machines this may cause lags. If so, just disable this option."
-            )
+            .setName(t("settings.autoRefreshSourceControl"))
+            .setDesc(t("settings.autoRefreshSourceControlDesc"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.refreshSourceControl)
@@ -475,50 +420,38 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName("Source control view refresh interval")
-            .setDesc(
-                "Milliseconds to wait after file change before refreshing the Source Control View."
-            )
+            .setName(t("settings.sourceControlRefreshInterval"))
+            .setDesc(t("settings.sourceControlRefreshIntervalDesc"))
             .addText((text) => {
-                const MIN_SOURCE_CONTROL_REFRESH_INTERVAL = 500;
                 text.inputEl.type = "number";
-                this.setNonDefaultValue({
-                    text,
-                    settingsProperty: "refreshSourceControlTimer",
-                });
+                text.setValue(
+                    String(plugin.settings.refreshSourceControlTimer)
+                );
                 text.setPlaceholder(
                     String(DEFAULT_SETTINGS.refreshSourceControlTimer)
                 );
                 text.onChange(async (value) => {
-                    // Without this check, if the textbox is empty or the input is invalid, MIN_SOURCE_CONTROL_REFRESH_INTERVAL would be saved instead of saving the default value.
-                    if (value !== "" && Number.isInteger(Number(value))) {
-                        plugin.settings.refreshSourceControlTimer = Math.max(
-                            Number(value),
-                            MIN_SOURCE_CONTROL_REFRESH_INTERVAL
-                        );
-                    } else {
-                        plugin.settings.refreshSourceControlTimer =
-                            DEFAULT_SETTINGS.refreshSourceControlTimer;
-                    }
+                    plugin.settings.refreshSourceControlTimer = Math.max(
+                        Number(value),
+                        500
+                    );
                     await plugin.saveSettings();
                     plugin.setRefreshDebouncer();
                 });
             });
-        new Setting(containerEl).setName("Miscellaneous").setHeading();
+        new Setting(containerEl).setName(t("settings.miscellaneous")).setHeading();
 
         if (plugin.gitManager instanceof SimpleGit) {
             new Setting(containerEl)
-                .setName("Diff view style")
-                .setDesc(
-                    'Set the style for the diff view. Note that the actual diff in "Split" mode is not generated by Git, but the editor itself instead so it may differ from the diff generated by Git. One advantage of this is that you can edit the text in that view.'
-                )
+                .setName(t("settings.diffViewStyle"))
+                .setDesc(t("settings.diffViewStyleDesc"))
                 .addDropdown((dropdown) => {
                     const options: Record<
                         ObsidianGitSettings["diffStyle"],
                         string
                     > = {
-                        split: "Split",
-                        git_unified: "Unified",
+                        split: t("settings.diffOptions.split"),
+                        git_unified: t("settings.diffOptions.unified"),
                     };
                     dropdown.addOptions(options);
                     dropdown.setValue(plugin.settings.diffStyle);
@@ -532,26 +465,22 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         }
 
         new Setting(containerEl)
-            .setName("Disable notifications")
-            .setDesc(
-                "Disable notifications for git operations to minimize distraction (refer to status bar for updates). Errors are still shown as notifications even if you enable this setting."
-            )
+            .setName(t("settings.disableNotifications"))
+            .setDesc(t("settings.disableNotificationsDesc"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.disablePopups)
                     .onChange(async (value) => {
                         plugin.settings.disablePopups = value;
-                        this.refreshDisplayWithDelay();
+                        this.display();
                         await plugin.saveSettings();
                     })
             );
 
         if (!plugin.settings.disablePopups)
             new Setting(containerEl)
-                .setName("Hide notifications for no changes")
-                .setDesc(
-                    "Don't show notifications when there are no changes to commit or push."
-                )
+                .setName(t("settings.hideNotificationsForNoChanges"))
+                .setDesc(t("settings.hideNotificationsForNoChangesDesc"))
                 .addToggle((toggle) =>
                     toggle
                         .setValue(plugin.settings.disablePopupsForNoChanges)
@@ -562,10 +491,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 );
 
         new Setting(containerEl)
-            .setName("Show status bar")
-            .setDesc(
-                "Obsidian must be restarted for the changes to take affect."
-            )
+            .setName(t("settings.showStatusBarToggle"))
+            .setDesc(t("settings.showStatusBarToggleDesc"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.showStatusBar)
@@ -576,10 +503,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName("File menu integration")
-            .setDesc(
-                `Add "Stage", "Unstage" and "Add to .gitignore" actions to the file menu.`
-            )
+            .setName(t("settings.showStageButtons"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.showFileMenu)
@@ -590,10 +514,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName("Show branch status bar")
-            .setDesc(
-                "Obsidian must be restarted for the changes to take affect."
-            )
+            .setName(t("settings.showBranchStatusBarToggle"))
+            .setDesc(t("settings.showBranchStatusBarToggleDesc"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.showBranchStatusBar)
@@ -604,7 +526,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName("Show the count of modified files in the status bar")
+            .setName(t("settings.showChangedFilesCount"))
             .addToggle((toggle) =>
                 toggle
                     .setValue(plugin.settings.changedFilesInStatusBar)
@@ -616,16 +538,16 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitManager instanceof IsomorphicGit) {
             new Setting(containerEl)
-                .setName("Authentication/commit author")
+                .setName(t("settings.authenticationHeading"))
                 .setHeading();
         } else {
-            new Setting(containerEl).setName("Commit author").setHeading();
+            new Setting(containerEl).setName(t("settings.commitAuthorHeading")).setHeading();
         }
 
         if (plugin.gitManager instanceof IsomorphicGit)
             new Setting(containerEl)
                 .setName(
-                    "Username on your git server. E.g. your username on GitHub"
+                    t("settings.gitServerUsername")
                 )
                 .addText((cb) => {
                     cb.setValue(plugin.localStorage.getUsername() ?? "");
@@ -636,9 +558,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitManager instanceof IsomorphicGit)
             new Setting(containerEl)
-                .setName("Password/Personal access token")
+                .setName(t("settings.passwordOrToken"))
                 .setDesc(
-                    "Type in your password. You won't be able to see it again."
+                    t("settings.passwordOrTokenDesc")
                 )
                 .addText((cb) => {
                     cb.inputEl.autocapitalize = "off";
@@ -651,7 +573,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitReady)
             new Setting(containerEl)
-                .setName("Author name for commit")
+                .setName(t("settings.authorName"))
                 .addText(async (cb) => {
                     cb.setValue(
                         (await plugin.gitManager.getConfig("user.name")) ?? ""
@@ -666,7 +588,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitReady)
             new Setting(containerEl)
-                .setName("Author email for commit")
+                .setName(t("settings.authorEmail"))
                 .addText(async (cb) => {
                     cb.setValue(
                         (await plugin.gitManager.getConfig("user.email")) ?? ""
@@ -680,17 +602,17 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 });
 
         new Setting(containerEl)
-            .setName("Advanced")
+            .setName(t("settings.advanced"))
             .setDesc(
-                "These settings usually don't need to be changed, but may be requried for special setups."
+                t("settings.advancedDesc")
             )
             .setHeading();
 
         if (plugin.gitManager instanceof SimpleGit) {
             new Setting(containerEl)
-                .setName("Update submodules")
+                .setName(t("settings.updateSubmodules"))
                 .setDesc(
-                    '"Commit-and-sync" and "pull" takes care of submodules. Missing features: Conflicted files, count of pulled/pushed/committed files. Tracking branch needs to be set for each submodule.'
+                    t("settings.updateSubmodulesDesc")
                 )
                 .addToggle((toggle) =>
                     toggle
@@ -702,9 +624,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 );
             if (plugin.settings.updateSubmodules) {
                 new Setting(containerEl)
-                    .setName("Submodule recurse checkout/switch")
+                    .setName(t("settings.submoduleRecurse"))
                     .setDesc(
-                        "Whenever a checkout happens on the root repository, recurse the checkout on the submodules (if the branches exist)."
+                        t("settings.submoduleRecurseDesc")
                     )
                     .addToggle((toggle) =>
                         toggle
@@ -720,12 +642,12 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitManager instanceof SimpleGit)
             new Setting(containerEl)
-                .setName("Custom Git binary path")
+                .setName(t("settings.customGitPath"))
                 .addText((cb) => {
                     cb.setValue(plugin.localStorage.getGitPath() ?? "");
                     cb.setPlaceholder("git");
                     cb.onChange((value) => {
-                        plugin.localStorage.setGitPath(value);
+                        plugin.localStorage.setGitPath(value || "git");
                         plugin.gitManager
                             .updateGitPath(value || "git")
                             .catch((e) => plugin.displayError(e));
@@ -734,9 +656,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitManager instanceof SimpleGit)
             new Setting(containerEl)
-                .setName("Additional environment variables")
+                .setName(t("settings.additionalEnvVars"))
                 .setDesc(
-                    "Use each line for a new environment variable in the format KEY=VALUE ."
+                    t("settings.additionalEnvVarsDesc")
                 )
                 .addTextArea((cb) => {
                     cb.setPlaceholder("GIT_DIR=/path/to/git/dir");
@@ -748,8 +670,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
         if (plugin.gitManager instanceof SimpleGit)
             new Setting(containerEl)
-                .setName("Additional PATH environment variable paths")
-                .setDesc("Use each line for one path")
+                .setName(t("settings.additionalPathEnv"))
+                .setDesc(t("settings.additionalPathEnvDesc"))
                 .addTextArea((cb) => {
                     cb.setValue(plugin.localStorage.getPATHPaths().join("\n"));
                     cb.onChange((value) => {
@@ -758,12 +680,12 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 });
         if (plugin.gitManager instanceof SimpleGit)
             new Setting(containerEl)
-                .setName("Reload with new environment variables")
+                .setName(t("settings.reloadEnvVars"))
                 .setDesc(
-                    "Removing previously added environment variables will not take effect until Obsidian is restarted."
+                    t("settings.reloadEnvVarsDesc")
                 )
                 .addButton((cb) => {
-                    cb.setButtonText("Reload");
+                    cb.setButtonText(t("settings.reloadButtonText"));
                     cb.setCta();
                     cb.onClick(async () => {
                         await (plugin.gitManager as SimpleGit).setGitInstance();
@@ -771,12 +693,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 });
 
         new Setting(containerEl)
-            .setName("Custom base path (Git repository path)")
+            .setName(t("settings.customBasePath"))
             .setDesc(
-                `
-            Sets the relative path to the vault from which the Git binary should be executed.
-             Mostly used to set the path to the Git repository, which is only required if the Git repository is below the vault root directory. Use "\\" instead of "/" on Windows.
-            `
+                t("settings.customBasePathDesc")
             )
             .addText((cb) => {
                 cb.setValue(plugin.settings.basePath);
@@ -791,9 +710,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName("Custom Git directory path (Instead of '.git')")
+            .setName(t("settings.customGitDir"))
             .setDesc(
-                `Requires restart of Obsidian to take effect. Use "\\" instead of "/" on Windows.`
+                t("settings.customGitDirDesc")
             )
             .addText((cb) => {
                 cb.setValue(plugin.settings.gitDir);
@@ -805,9 +724,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             });
 
         new Setting(containerEl)
-            .setName("Disable on this device")
+            .setName(t("settings.disableOnDevice"))
             .setDesc(
-                "Disables the plugin on this device. This setting is not synced."
+                t("settings.disableOnDeviceDesc")
             )
             .addToggle((toggle) =>
                 toggle
@@ -822,16 +741,16 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                                 .catch((e) => plugin.displayError(e));
                         }
                         new Notice(
-                            "Obsidian must be restarted for the changes to take affect."
+                            t("notices.restartObsidian")
                         );
                     })
             );
 
-        new Setting(containerEl).setName("Support").setHeading();
+        new Setting(containerEl).setName(t("settings.support")).setHeading();
         new Setting(containerEl)
-            .setName("Donate")
+            .setName(t("settings.donate"))
             .setDesc(
-                "If you like this Plugin, consider donating to support continued development."
+                t("settings.donateDesc")
             )
             .addButton((bt) => {
                 bt.buttonEl.outerHTML =
@@ -843,7 +762,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         debugDiv.setAttr("style", "margin: var(--size-4-2)");
 
         const debugButton = debugDiv.createEl("button");
-        debugButton.setText("Copy Debug Information");
+        debugButton.setText(t("settings.copyDebugInfo"));
         debugButton.onclick = async () => {
             await window.navigator.clipboard.writeText(
                 JSON.stringify(
@@ -856,7 +775,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 )
             );
             new Notice(
-                "Debug information copied to clipboard. May contain sensitive information!"
+                t("settings.debugInfoCopied")
             );
         };
 
@@ -864,15 +783,15 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             const info = containerEl.createDiv();
             info.setAttr("align", "center");
             info.setText(
-                "Debugging and logging:\nYou can always see the logs of this and every other plugin by opening the console with"
+                t("settings.debuggingAndLogging")
             );
             const keys = containerEl.createDiv();
             keys.setAttr("align", "center");
             keys.addClass("obsidian-git-shortcuts");
             if (Platform.isMacOS === true) {
-                keys.createEl("kbd", { text: "CMD (⌘) + OPTION (⌥) + I" });
+                keys.createEl("kbd", { text: t("settings.macShortcut") });
             } else {
-                keys.createEl("kbd", { text: "CTRL + SHIFT + I" });
+                keys.createEl("kbd", { text: t("settings.winLinuxShortcut") });
             }
         }
     }
@@ -922,55 +841,47 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
 
     private addLineAuthorInfoSettings() {
         const baseLineAuthorInfoSetting = new Setting(this.containerEl).setName(
-            "Show commit authoring information next to each line"
+            t("settings.lineAuthorInfoDesc")
         );
 
         if (!this.plugin.lineAuthoringFeature.isAvailableOnCurrentPlatform()) {
             baseLineAuthorInfoSetting
-                .setDesc("Only available on desktop currently.")
+                .setDesc(t("settings.lineAuthorDesktopOnly"))
                 .setDisabled(true);
         }
 
         baseLineAuthorInfoSetting.descEl.innerHTML = `
-            <a href="${LINE_AUTHOR_FEATURE_WIKI_LINK}">Feature guide and quick examples</a></br>
-            The commit hash, author name and authoring date can all be individually toggled.</br>Hide everything, to only show the age-colored sidebar.`;
+            <a href="${LINE_AUTHOR_FEATURE_WIKI_LINK}">${t("settings.lineAuthorFeatureGuide")}</a></br>
+            ${t("settings.lineAuthorConfigDesc")}`;
 
         baseLineAuthorInfoSetting.addToggle((toggle) =>
             toggle.setValue(this.settings.lineAuthor.show).onChange((value) => {
                 this.configureLineAuthorShowStatus(value);
-                this.refreshDisplayWithDelay();
+                this.display();
             })
         );
 
         if (this.settings.lineAuthor.show) {
             const trackMovement = new Setting(this.containerEl)
-                .setName("Follow movement and copies across files and commits")
+                .setName(t("settings.followLineMovement"))
                 .setDesc("")
                 .addDropdown((dropdown) => {
                     dropdown.addOptions(<
                         Record<LineAuthorFollowMovement, string>
                     >{
-                        inactive: "Do not follow (default)",
-                        "same-commit": "Follow within same commit",
-                        "all-commits": "Follow within all commits (maybe slow)",
+                        inactive: t("settings.followMovementInactive"),
+                        "same-commit": t("settings.followMovementSameCommit"),
+                        "all-commits": t("settings.followMovementAllCommits"),
                     });
                     dropdown.setValue(this.settings.lineAuthor.followMovement);
                     dropdown.onChange((value: LineAuthorFollowMovement) =>
                         this.lineAuthorSettingHandler("followMovement", value)
                     );
                 });
-            trackMovement.descEl.innerHTML = `
-                By default (deactivated), each line only shows the newest commit where it was changed.
-                <br/>
-                With <i>same commit</i>, cut-copy-paste-ing of text is followed within the same commit and the original commit of authoring will be shown.
-                <br/>
-                With <i>all commits</i>, cut-copy-paste-ing text inbetween multiple commits will be detected.
-                <br/>
-                It uses <a href="https://git-scm.com/docs/git-blame">git-blame</a> and
-                for matches (at least ${GIT_LINE_AUTHORING_MOVEMENT_DETECTION_MINIMAL_LENGTH} characters) within the same (or all) commit(s), <em>the originating</em> commit's information is shown.`;
+            trackMovement.descEl.innerHTML = t("settings.followMovementDesc");
 
             new Setting(this.containerEl)
-                .setName("Show commit hash")
+                .setName(t("settings.showCommitHash"))
                 .addToggle((tgl) => {
                     tgl.setValue(this.settings.lineAuthor.showCommitHash);
                     tgl.onChange((value: boolean) =>
@@ -979,8 +890,8 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 });
 
             new Setting(this.containerEl)
-                .setName("Author name display")
-                .setDesc("If and how the author is displayed")
+                .setName(t("settings.authorNameDisplay"))
+                .setDesc(t("settings.authorNameDisplayDesc"))
                 .addDropdown((dropdown) => {
                     const options: Record<LineAuthorDisplay, string> = {
                         hide: "Hide",
@@ -998,9 +909,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 });
 
             new Setting(this.containerEl)
-                .setName("Authoring date display")
+                .setName(t("settings.authoringDateDisplay"))
                 .setDesc(
-                    "If and how the date and time of authoring the line is displayed"
+                    t("settings.authoringDateDisplayDesc")
                 )
                 .addDropdown((dropdown) => {
                     const options: Record<
@@ -1024,7 +935,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                                 "dateTimeFormatOptions",
                                 value
                             );
-                            this.refreshDisplayWithDelay();
+                            this.display();
                         }
                     );
                 });
@@ -1035,7 +946,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                 );
 
                 dateTimeFormatCustomStringSetting
-                    .setName("Custom authoring date format")
+                    .setName(t("settings.customDateFormat"))
                     .addText((cb) => {
                         cb.setValue(
                             this.settings.lineAuthor.dateTimeFormatCustomString
@@ -1061,12 +972,12 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             }
 
             new Setting(this.containerEl)
-                .setName("Authoring date display timezone")
+                .setName(t("settings.dateDisplayTimezone"))
                 .addDropdown((dropdown) => {
                     const options: Record<LineAuthorTimezoneOption, string> = {
-                        "viewer-local": "My local (default)",
-                        "author-local": "Author's local",
-                        utc0000: "UTC+0000/Z",
+                        "viewer-local": t("settings.viewerLocal"),
+                        "author-local": t("settings.authorLocal"),
+                        utc0000: t("settings.utc"),
                     };
                     dropdown.addOptions(options);
                     dropdown.setValue(
@@ -1076,15 +987,10 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                     dropdown.onChange(async (value: LineAuthorTimezoneOption) =>
                         this.lineAuthorSettingHandler("dateTimeTimezone", value)
                     );
-                }).descEl.innerHTML = `
-                    The time-zone in which the authoring date should be shown.
-                    Either your local time-zone (default),
-                    the author's time-zone during commit creation or
-                    <a href="https://en.wikipedia.org/wiki/UTC%C2%B100:00">UTC±00:00</a>.
-            `;
+                }).descEl.innerHTML = t("settings.dateDisplayTimezoneDesc");
 
             const oldestAgeSetting = new Setting(this.containerEl).setName(
-                "Oldest age in coloring"
+                t("settings.oldestAge")
             );
 
             oldestAgeSetting.descEl.innerHTML =
@@ -1113,7 +1019,7 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
             this.createColorSetting("oldest");
 
             new Setting(this.containerEl)
-                .setName("Text color")
+                .setName(t("settings.textColor"))
                 .addText((field) => {
                     field.setValue(this.settings.lineAuthor.textColorCss);
                     field.onChange(async (value) => {
@@ -1122,41 +1028,16 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
                             value
                         );
                     });
-                }).descEl.innerHTML = `
-                    The CSS color of the gutter text.<br/>
-
-                    It is higly recommended to use
-                    <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/Using_CSS_custom_properties">
-                    CSS variables</a>
-                    defined by themes
-                    (e.g. <pre style="display:inline">var(--text-muted)</pre> or
-                    <pre style="display:inline">var(--text-on-accent)</pre>,
-                    because they automatically adapt to theme changes.<br/>
-
-                    See: <a href="https://github.com/obsidian-community/obsidian-theme-template/blob/main/obsidian.css">
-                    List of available CSS variables in Obsidian
-                    <a/>
-                `;
+                }).descEl.innerHTML = t("settings.textColorDesc");
 
             new Setting(this.containerEl)
-                .setName("Ignore whitespace and newlines in changes")
+                .setName(t("settings.ignoreWhitespace"))
                 .addToggle((tgl) => {
                     tgl.setValue(this.settings.lineAuthor.ignoreWhitespace);
                     tgl.onChange((value) =>
                         this.lineAuthorSettingHandler("ignoreWhitespace", value)
                     );
-                }).descEl.innerHTML = `
-                    Whitespace and newlines are interpreted as
-                    part of the document and in changes
-                    by default (hence not ignored).
-                    This makes the last line being shown as 'changed'
-                    when a new subsequent line is added,
-                    even if the previously last line's text is the same.
-                    <br>
-                    If you don't care about purely-whitespace changes
-                    (e.g. list nesting / quote indentation changes),
-                    then activating this will provide more meaningful change detection.
-                `;
+                }).descEl.innerHTML = t("settings.ignoreWhitespaceDesc");
         }
     }
 
@@ -1195,9 +1076,9 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         if (settingsDom) {
             const whichDescriber =
                 which === "oldest"
-                    ? `oldest (${this.settings.lineAuthor.coloringMaxAge} or older)`
-                    : "newest";
-            settingsDom.nameEl.innerText = `Color for ${whichDescriber} commits`;
+                    ? t("settings.colorForOldest", this.settings.lineAuthor.coloringMaxAge)
+                    : t("settings.colorForNewest");
+            settingsDom.nameEl.innerText = whichDescriber;
         }
     }
 
@@ -1223,60 +1104,30 @@ export class ObsidianGitSettingsTab extends PluginSettingTab {
         const today = moment.unix(moment.now() / 1000).format("YYYY-MM-DD");
         const text = colorIsValid
             ? `abcdef Author Name ${today}`
-            : "invalid color";
+            : t("settings.invalidAge");
         const preview = `<div
             class="line-author-settings-preview"
             style="background-color: ${rgbStr}; width: 30ch;"
             >${text}</div>`;
 
-        return `Supports 'rgb(r,g,b)', 'hsl(h,s,l)', hex (#) and
-            named colors (e.g. 'black', 'purple'). Color preview: ${preview}`;
+        return `${t("settings.textColorPreviewHtml")} ${preview}`;
     }
 
     private previewCustomDateTimeDescriptionHtml(
         dateTimeFormatCustomString: string
     ) {
         const formattedDateTime = moment().format(dateTimeFormatCustomString);
-        return `<a href="${FORMAT_STRING_REFERENCE_URL}">Format string</a> to display the authoring date.</br>Currently: ${formattedDateTime}`;
+        return `<a href="${FORMAT_STRING_REFERENCE_URL}">${t("settings.formatStringDesc")}</a></br>${t("settings.currentlyFormatted")} ${formattedDateTime}`;
     }
 
     private previewOldestAgeDescriptionHtml(coloringMaxAge: string) {
         const duration = parseColoringMaxAgeDuration(coloringMaxAge);
         const durationString =
-            duration !== undefined ? `${duration.asDays()} days` : "invalid!";
+            duration !== undefined ? `${duration.asDays()} ${t("settings.days")}` : t("settings.invalidAge");
         return [
-            `The oldest age in the line author coloring. Everything older will have the same color.
-            </br>Smallest valid age is "1d". Currently: ${durationString}`,
+            `${t("settings.oldestAgeDesc2")} ${durationString}`,
             duration,
         ] as const;
-    }
-
-    /**
-     * Sets the value in the textbox for a given setting only if the saved value differs from the default value.
-     * If the saved value is the default value, it probably wasn't defined by the user, so it's better to display it as a placeholder.
-     */
-    private setNonDefaultValue({
-        settingsProperty,
-        text,
-    }: {
-        settingsProperty: keyof ObsidianGitSettings;
-        text: TextComponent | TextAreaComponent;
-    }): void {
-        const storedValue = this.plugin.settings[settingsProperty];
-        const defaultValue = DEFAULT_SETTINGS[settingsProperty];
-
-        if (defaultValue !== storedValue) {
-            text.setValue(String(storedValue));
-        }
-    }
-
-    /**
-     * Delays the update of the settings UI.
-     * Used when the user toggles one of the settings that control enabled states of other settings. Delaying the update
-     * allows most of the toggle animation to run, instead of abruptly jumping between enabled/disabled states.
-     */
-    private refreshDisplayWithDelay(timeout = 80): void {
-        setTimeout(() => this.display(), timeout);
     }
 }
 

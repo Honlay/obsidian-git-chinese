@@ -225,7 +225,20 @@ export const en = {
             title: "Edit .gitignore",
             save: "Save"
         },
-        autoBackupPrompt: "Auto backup: Please enter a custom commit message. Leave empty to abort"
+        autoBackupPrompt: "Auto backup prompt",
+        enterCustomMessage: "Enter custom commit message",
+        branchSelect: "Select branch",
+        createBranch: "Create new branch",
+        deleteBranch: "Delete branch",
+        forceDelete: "Force delete",
+        enterRemoteUrl: "Enter remote URL",
+        enterDirectory: "Enter directory for clone",
+        cloneInProgress: "Cloning new repo...",
+        abortedClone: "Aborted clone",
+        running: "Running '{0}'...",
+        enterResponse: "Enter response",
+        notAGitRepository: "Not a git repository",
+        tooManyChanges: "Too many changes to display"
     },
     sourceControl: {
         changes: "Changes",
@@ -237,7 +250,12 @@ export const en = {
         commitStagedButton: "Commit",
         noChanges: "No changes",
         moreFiles: "...more files",
-        changedFiles: "Changed files"
+        changedFiles: "Changed files",
+        recentlyPulledFiles: "Recently pulled files",
+        changeLayout: "Change layout",
+        refresh: "Refresh",
+        clear: "Clear",
+        discard: "Discard"
     },
     views: {
         history: "History view",
@@ -248,7 +266,8 @@ export const en = {
         deleteRepository: {
             success: "Repository has been deleted successfully. Reloading plugin...",
             notFound: "Repository not found"
-        }
+        },
+        restartObsidian: "Obsidian must be restarted for changes to take effect."
     },
     errors: {
         commitFailed: "Commit failed",
@@ -259,5 +278,33 @@ export const en = {
         authError: "Authentication error",
         notAGitRepository: "Not a git repository",
         tooManyChanges: "Too many changes to display"
+    },
+    messages: {
+        pullUpToDate: "Pull: Everything is up-to-date",
+        committedFiles: "Committed {0} {0, plural, one {file} other {files}}",
+        noChangesToCommit: "No changes to commit",
+        committedChanges: "Committed changes",
+        pushedToRemote: "Pushed {0} {0, plural, one {file} other {files}} to remote",
+        noCommitsToPush: "No commits to push",
+        pulledFromRemote: "Pulled {0} {0, plural, one {file} other {files}} from remote",
+        fetchedFromRemote: "Fetched from remote",
+        noChangesToPull: "No changes to pull",
+        createdBranch: "Created new branch {0}",
+        switchedToBranch: "Switched to {0}",
+        deletedBranch: "Deleted branch {0}",
+        setUpstreamTo: "Set upstream branch to {0}",
+        initializedRepo: "Initialized new repo",
+        addedToGitignore: "Added {0} to .gitignore",
+        stagedFile: "Staged {0}",
+        unstagedFile: "Unstaged {0}",
+        stageError: "Staging error: {0}",
+        unstageError: "Unstaging error: {0}",
+        noGitRepository: "Can't find a valid git repository. Please create one via the given command or clone an existing repo.",
+        cannotRunGit: "Cannot run git command. Trying to run: '{0}'.",
+        commitConflictError: "Did not commit, because you have conflicts in {0} {0, plural, one {file} other {files}}. Please resolve them and commit per command.",
+        pullConflictError: "You have conflicts in {0} {0, plural, one {file} other {files}}",
+        networkError: "Git: Going into offline mode. Future network errors will no longer be displayed.",
+        conflictResolutionGuide: "# Conflicts\nPlease resolve them and commit them using the commands `Git: Commit all changes` followed by `Git: Push`\n(This file will automatically be deleted before commit)\n[[#Additional Instructions]] available below file list\n\n",
+        conflictResolutionAdditional: "\n# Additional Instructions\nI strongly recommend to use \"Source mode\" for viewing the conflicted files. For simple conflicts, in each file listed above replace every occurrence of the following text blocks with the desired text.\n\n```diff\n<<<<<<< HEAD\n    File changes in local repository\n=======\n    File changes in remote repository\n>>>>>>> origin/main\n```"
     }
 }; 

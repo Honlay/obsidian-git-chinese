@@ -30,6 +30,10 @@ export class StatusBar {
         );
     }
 
+    public remove(): void {
+        this.statusBarEl.empty();
+    }
+
     public displayMessage(message: string, timeout: number) {
         this.messages.push({
             message: `Git: ${message.slice(0, 100)}`,

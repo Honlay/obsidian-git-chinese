@@ -364,7 +364,7 @@ export default class ObsidianGit extends Plugin {
                                     ),
                                 });
                             }
-                            this.displayMessage(`Staged ${filePath}`);
+                            this.displayMessage(t("messages.stagedFile", filePath));
                         });
                     });
             });
@@ -384,7 +384,7 @@ export default class ObsidianGit extends Plugin {
                                     ),
                                 });
                             }
-                            this.displayMessage(`Unstaged ${filePath}`);
+                            this.displayMessage(t("messages.unstagedFile", filePath));
                         });
                     });
             });
@@ -714,16 +714,14 @@ export default class ObsidianGit extends Plugin {
             return;
         }
         if (!filesUpdated) {
-            this.displayMessage("Pull: Everything is up-to-date");
+            this.displayMessage(t("messages.pullUpToDate"));
         }
 
         if (this.gitManager instanceof SimpleGit) {
             const status = await this.updateCachedStatus();
             if (status.conflicted.length > 0) {
                 this.displayError(
-                    `You have conflicts in ${status.conflicted.length} ${
-                        status.conflicted.length == 1 ? "file" : "files"
-                    }`
+                    t("messages.pullConflictError", status.conflicted.length)
                 );
                 await this.handleConflict(status.conflicted);
             }
@@ -771,7 +769,7 @@ export default class ObsidianGit extends Plugin {
             ) {
                 await this.push();
             } else {
-                this.displayMessage("No commits to push");
+                this.displayMessage(t("messages.noCommitsToPush"));
             }
         }
         this.setPluginState({ gitAction: CurrentGitAction.idle });
@@ -811,11 +809,7 @@ export default class ObsidianGit extends Plugin {
                 // check for conflict files on auto backup
                 if (fromAuto && status.conflicted.length > 0) {
                     this.displayError(
-                        `Did not commit, because you have conflicts in ${
-                            status.conflicted.length
-                        } ${
-                            status.conflicted.length == 1 ? "file" : "files"
-                        }. Please resolve them and commit per command.`
+                        t("messages.commitConflictError", status.conflicted.length)
                     );
                     await this.handleConflict(status.conflicted);
                     return false;
@@ -830,7 +824,7 @@ export default class ObsidianGit extends Plugin {
                     //
                     // Conflicts should only be resolved by manually committing.
                     this.displayError(
-                        `Did not commit, because you have conflicts. Please resolve them and commit per command.`
+                        t("messages.commitConflictError", 0)
                     );
                     return false;
                 } else if (hadConflict) {
@@ -913,12 +907,10 @@ export default class ObsidianGit extends Plugin {
                     committedFiles = changedFiles.length;
                 }
                 this.displayMessage(
-                    `Committed${roughly ? " approx." : ""} ${committedFiles} ${
-                        committedFiles == 1 ? "file" : "files"
-                    }`
+                    t("messages.committedFiles", committedFiles)
                 );
             } else {
-                this.displayMessage("No changes to commit");
+                this.displayMessage(t("messages.noChangesToCommit"));
             }
             this.app.workspace.trigger("obsidian-git:refresh");
 
@@ -949,9 +941,7 @@ export default class ObsidianGit extends Plugin {
                 (status = await this.updateCachedStatus()).conflicted.length > 0
             ) {
                 this.displayError(
-                    `Cannot push. You have conflicts in ${
-                        status.conflicted.length
-                    } ${status.conflicted.length == 1 ? "file" : "files"}`
+                    t("messages.pullConflictError", status.conflicted.length)
                 );
                 await this.handleConflict(status.conflicted);
                 return false;
@@ -959,7 +949,9 @@ export default class ObsidianGit extends Plugin {
                 this.gitManager instanceof IsomorphicGit &&
                 hadConflict
             ) {
-                this.displayError(`Cannot push. You have conflicts`);
+                this.displayError(
+                    t("messages.pullConflictError", 0)
+                );
                 return false;
             }
             this.log("Pushing....");
@@ -968,12 +960,10 @@ export default class ObsidianGit extends Plugin {
             if (pushedFiles !== undefined) {
                 if (pushedFiles > 0) {
                     this.displayMessage(
-                        `Pushed ${pushedFiles} ${
-                            pushedFiles == 1 ? "file" : "files"
-                        } to remote`
+                        t("messages.pushedToRemote", pushedFiles)
                     );
                 } else {
-                    this.displayMessage(`No commits to push`);
+                    this.displayMessage(t("messages.noCommitsToPush"));
                 }
             }
             this.setPluginState({ offlineMode: false });
@@ -1004,9 +994,7 @@ export default class ObsidianGit extends Plugin {
 
             if (pulledFiles.length > 0) {
                 this.displayMessage(
-                    `Pulled ${pulledFiles.length} ${
-                        pulledFiles.length == 1 ? "file" : "files"
-                    } from remote`
+                    t("messages.pulledFromRemote", pulledFiles.length)
                 );
                 this.lastPulledFiles = pulledFiles;
             }
@@ -1025,7 +1013,7 @@ export default class ObsidianGit extends Plugin {
         try {
             await this.gitManager.fetch();
 
-            this.displayMessage(`Fetched from remote`);
+            this.displayMessage(t("messages.fetchedFromRemote"));
             this.setPluginState({ offlineMode: false });
             this.app.workspace.trigger("obsidian-git:refresh");
         } catch (error) {
@@ -1052,7 +1040,7 @@ export default class ObsidianGit extends Plugin {
         if (!(await this.isAllInitialized())) return false;
 
         await this.gitManager.stage(file.path, true);
-        this.displayMessage(`Staged ${file.path}`);
+        this.displayMessage(t("messages.stagedFile", file.path));
 
         this.app.workspace.trigger("obsidian-git:refresh");
 
@@ -1064,7 +1052,7 @@ export default class ObsidianGit extends Plugin {
         if (!(await this.isAllInitialized())) return false;
 
         await this.gitManager.unstage(file.path, true);
-        this.displayMessage(`Unstaged ${file.path}`);
+        this.displayMessage(t("messages.unstagedFile", file.path));
 
         this.app.workspace.trigger("obsidian-git:refresh");
 
@@ -1083,7 +1071,7 @@ export default class ObsidianGit extends Plugin {
 
         if (selectedBranch != undefined) {
             await this.gitManager.checkout(selectedBranch);
-            this.displayMessage(`Switched to ${selectedBranch}`);
+            this.displayMessage(t("messages.switchedToBranch", selectedBranch));
             this.app.workspace.trigger("obsidian-git:refresh");
             await this.branchBar?.display();
             return selectedBranch;
@@ -1099,7 +1087,7 @@ export default class ObsidianGit extends Plugin {
 
         if (branch != undefined && remote != undefined) {
             await this.gitManager.checkout(branch, remote);
-            this.displayMessage(`Switched to ${selectedBranch}`);
+            this.displayMessage(t("messages.switchedToBranch", selectedBranch));
             await this.branchBar?.display();
             return selectedBranch;
         }
@@ -1113,7 +1101,7 @@ export default class ObsidianGit extends Plugin {
         }).openAndGetResult();
         if (newBranch != undefined) {
             await this.gitManager.createBranch(newBranch);
-            this.displayMessage(`Created new branch ${newBranch}`);
+            this.displayMessage(t("messages.createdBranch", newBranch));
             await this.branchBar?.display();
             return newBranch;
         }
@@ -1146,7 +1134,7 @@ export default class ObsidianGit extends Plugin {
                 force = forceAnswer === "YES";
             }
             await this.gitManager.deleteBranch(branch, force);
-            this.displayMessage(`Deleted branch ${branch}`);
+            this.displayMessage(t("messages.deletedBranch", branch));
             await this.branchBar?.display();
             return branch;
         }
@@ -1179,7 +1167,7 @@ export default class ObsidianGit extends Plugin {
             return false;
         } else {
             await this.gitManager.updateUpstreamBranch(remoteBranch);
-            this.displayMessage(`Set upstream branch to ${remoteBranch}`);
+            this.displayMessage(t("messages.setUpstreamTo", remoteBranch));
             this.setPluginState({ gitAction: CurrentGitAction.idle });
             return true;
         }

@@ -1,131 +1,51 @@
-# Obsidian Git Plugin
+# Obsidian Git 插件的中文翻译版
 
-A powerful community plugin for [Obsidian.md](Obsidian.md) that brings Git integration right into your vault. Automatically commit, pull, push, and see your changes — all within Obsidian.
+这是 [Obsidian Git 插件](https://github.com/Vinzent03/obsidian-git) 的中文翻译版本，在原始插件的基础上添加了完整的中文界面支持。
 
-## 📚 Documentation
+## 📝 关于此 Fork
 
-All setup instructions (including mobile), common issues, tips, and advanced configuration can be found in the 📖 [full documentation](https://publish.obsidian.md/git-doc).
+此版本基于原始 Obsidian Git 插件，添加了全面的中文翻译，使中文用户能够更轻松地使用 Git 相关功能。所有原始功能保持不变，只是增加了界面的中文本地化。
 
-> 👉 Mobile users: Please check the dedicated [Mobile](#mobile) section below.
+## 🔧 安装方法
 
-## ✨ Key Features
+### 替换文件方式安装
 
-- 🔁 **Automatic commit-and-sync** (commit, pull, and push) on a schedule.
-- 📥 **Auto-pull on Obsidian startup**
-- 📂 **Submodule support** for managing multiple repositories (desktop only and opt-in)
-- 🔧 **Source Control View** to stage/unstage, commit and diff files - Open it with the `Open source control view` command.
-- 📜 **History View** for browsing commit logs and changed files - Open it with the `Open history view` command.
-- 🔍 **Diff View** for viewing changes in a file - Open it with the `Open diff view` command.
-- 🔗 GitHub integration to open files and history in your browser
+1. 在您的 Obsidian 已安装原版 Obsidian Git 插件的情况下
+2. 下载此仓库中的 `main.js` 文件
+3. 将下载的文件替换到 `.obsidian\plugins\obsidian-git\main.js`
+4. 重启 Obsidian
+5. 在插件设置页面中，将语言设置为"中文"
 
-> 🧩 For detailed file history, consider pairing this plugin with the [Version History Diff](obsidian://show-plugin?id=obsidian-version-history-diff) plugin.
+## ✨ 主要特性
 
-## 🖥️ UI Previews
+* 🌐 完整的中文用户界面
+* 🔁 自动提交和同步（提交、拉取和推送）
+* 📥 Obsidian 启动时自动拉取
+* 📂 子模块支持（仅桌面版且需要单独启用）
+* 🔧 源代码控制视图 - 使用"打开源代码控制视图"命令打开
+* 📜 历史视图 - 使用"打开历史视图"命令打开
+* 🔍 差异视图 - 使用"打开差异视图"命令打开
+* 🔗 GitHub 集成，可在浏览器中打开文件和历史
 
-### 🔧 Source Control View
+## 📱 移动设备支持（⚠️ 实验性）
 
-Manage your file changes directly inside Obsidian like stage/unstage individual files and commit them.
+Git 在移动设备上的实现**非常不稳定**！不建议在移动设备上使用此插件，建议使用其他同步服务。
 
-![Source Control View](https://raw.githubusercontent.com/Vinzent03/obsidian-git/master/images/source-view.png)
+### ❌ 移动设备限制
 
-### 📜 History View
+* 不支持 **SSH 认证**
+* 由于内存限制，仓库大小有限
+* 不支持变基合并策略
+* 不支持子模块
 
-Show the commit history of your repository. The commit message, author, date, and changed files can be shown. Author and date are disabled by default as shown in the screenshot, but can be enabled in the settings.
+## 🙏 致谢
 
-![History View](https://raw.githubusercontent.com/Vinzent03/obsidian-git/master/images/history-view.png)
+* 此中文翻译版基于 [Vinzent03](https://github.com/Vinzent03/obsidian-git) 的原始插件
+* 原始插件由 denolehov 开发，2021 年 3 月后由 Vinzent03 继续开发
 
-### 🔍 Diff View 
+## ⚠️ 免责声明
 
-Compare versions with a clear and concise diff viewer.
-Open it from the source control view or via the `Open diff view` command.
+这只是一个非官方的翻译版本。所有更新都会跟随原始插件，但可能会有延迟。如果您遇到任何问题，请先检查是否有新版本的原始插件。
 
-![Diff View](https://raw.githubusercontent.com/Vinzent03/obsidian-git/master/images/diff-view.png)
 
-## ⚙️ Available Commands
-> Not exhaustive - these are just some of the most common commands. For a full list, see the Command Palette in Obsidian.
 
-- 🔄 Changes
-  - `List changed files`: Lists all changes in a modal
-  - `Open diff view`: Open diff view for the current file
-  - `Stage current file`
-  - `Unstage current file`
-- ✅ Commit
-  - `Commit all changes`: Only commits all changes without pushing
-  - `Commit all changes with specific message`: Same as above, but with a custom message
-  - `Commit staged`: Commits only files that have been staged
-  - `Commit staged with specific message`: Same as above, but with a custom message
-- 🔀 Commit-and-sync
-  - `Commit-and-sync`: With default settings, this will commit all changes, pull, and push
-  - `Commit-and-sync with specific message`: Same as above, but with a custom message
-  - `Commit-and-sync and close`: Same as `Commit-and-sync`, but if running on desktop, will close the Obsidian window. Will not exit Obsidian app on mobile.
-- 🌐 Remote
-  - `Push`, `Pull`
-  - `Edit remotes`
-  - `Remove remote`
-  - `Clone an existing remote repo`: Opens dialog that will prompt for URL and authentication to clone a remote repo
-  - `Open file on GitHub`: Open the file view of the current file on GitHub in a browser window. Note: only works on desktop
-  - `Open file history on GitHub`: Open the file history of the current file on GitHub in a browser window. Note: only works on desktop
-- 🏠 Manage local repository
-  - `Initialize a new repo`
-  - `Create new branch`
-  - `Delete branch`
-  - `CAUTION: Delete repository`
-- 🧪 Miscellaneous
-  - `Open source control view`: Opens side pane displaying [Source control view](#sidebar-view)
-  - `Edit .gitignore`
-  - `Add file to .gitignore`: Add current file to `.gitignore`
-
-## 💻 Desktop Notes
-
-### 🔐 Authentication
-
-Some Git services may require further setup for HTTPS/SSH authentication. Refer to the [Authentication Guide](https://publish.obsidian.md/git-doc/Authentication)
-
-### Obsidian on Linux
-
-- ⚠️  Snap is not supported.
-- ⚠️  Flatpak is not recommended, because it doesn't have access to all system files.
-- ✅ Please use AppImage or a full access installation of your system's package manager instead ([Linux installation guide](https://publish.obsidian.md/git-doc/Installation#Linux))
-
-## 📱 Mobile Support (⚠️  Experimental)
-
-The Git implementation on mobile is **very unstable**! I would not recommend using this plugin on mobile, but try other syncing services.
-> 🧪 The Git plugin works on mobile thanks to [isomorphic-git](https://isomorphic-git.org/), a JavaScript-based re-implementation of Git - but it comes with serious limitations and issues. It is not possible for an Obsidian plugin to use a native Git installation on Android or iOS.
-
-### ❌ Mobile Limitations
-
-- No **SSH authentication** ([isomorphic-git issue](https://github.com/isomorphic-git/isomorphic-git/issues/231))
-- Limited repo size, because of memory restrictions
-- No rebase merge strategy
-- No submodules support
-
-### ⚠️  Performance Caveats
-
-> [!caution]
-> Depending on your device and available free RAM, Obsidian may
->
-> - crash on clone/pull
-> - create buffer overflow errors
-> - run indefinitely.
->
-> It's caused by the underlying git implementation on mobile, which is not efficient. I don't know how to fix this. If that's the case for you, I have to admit this plugin won't work for you. So commenting on any issue or creating a new one won't help. I am sorry.
-
-**Setup:** iPad Pro M1 with a [repo](https://github.com/Vinzent03/obsidian-git-stress-test) of 3000 files reduced from [10000 markdown files](https://github.com/Zettelkasten-Method/10000-markdown-files)
-
-The initial clone took 0m25s. After that, the most time consuming part is to check the whole working directory for file changes. On this setup, checking all files for changes to stage takes 03m40s. Other commands like pull, push and commit are very fast (1-5 seconds).
-
-### Tips for Mobile Use:
-
-The fastest way to work on mobile if you have a large repo/vault is to stage individual files and only commit staged files.
-
-## 🙋 Contact & Credits
-
-- The Line Authoring feature was developed by [GollyTicker](https://github.com/GollyTicker), so any questions may be best answered by him.
-- This plugin was initial developed by [denolehov](https://github.com/denolehov). Since March 2021, it's me [Vinzent03](https://github.com/Vinzent03) who is developing this plugin. That's why the GitHub repository got moved to my account in July 2024.
-- If you have any kind of feedback or questions, feel free to reach out via GitHub issues or `vinzent3` on [Obsidian Discord server](https://discord.com/invite/veuWUTm).
-
-## ☕ Support
-
-If you find this plugin useful and would like to support its development, you can support me on Ko-fi.
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/F1F195IQ5)

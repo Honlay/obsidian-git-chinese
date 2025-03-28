@@ -276,17 +276,23 @@ export const zh = {
         remoteUrl: "远程仓库URL",
         remoteConfirm: "添加",
         remoteCancel: "取消",
-        autoBackupPrompt: "自动备份：请输入自定义提交消息。留空则取消",
+        autoBackupPrompt: "自动备份提示",
+        enterCustomMessage: "请输入自定义提交消息",
+        branchSelect: "选择分支",
+        createBranch: "创建新分支",
+        deleteBranch: "删除分支",
+        forceDelete: "强制删除",
+        enterRemoteUrl: "输入远程仓库URL",
+        enterDirectory: "输入克隆目录",
+        cloneInProgress: "正在克隆新仓库...",
+        abortedClone: "已取消克隆",
+        running: "正在运行 '{0}'...",
+        enterResponse: "输入响应",
         deleteRepository: {
             placeholder: "您确定要删除仓库（.git目录）吗？此操作无法撤销。"
         },
-        discardAllChanges: {
-            placeholder: "确定要丢弃所有对已跟踪文件的更改吗？此操作无法撤消。"
-        },
-        editGitignore: {
-            title: "编辑 .gitignore",
-            save: "保存"
-        }
+        notAGitRepository: "不是Git仓库",
+        tooManyChanges: "要显示的更改太多"
     },
     sourceControl: {
         changes: "更改",
@@ -326,5 +332,33 @@ export const zh = {
         authError: "认证错误",
         notAGitRepository: "不是Git仓库",
         tooManyChanges: "要显示的更改太多"
+    },
+    messages: {
+        pullUpToDate: "拉取：已是最新",
+        committedFiles: "已提交 {0} 个文件",
+        noChangesToCommit: "没有要提交的更改",
+        committedChanges: "已提交更改",
+        pushedToRemote: "已推送 {0} 个文件到远程仓库",
+        noCommitsToPush: "没有要推送的提交",
+        pulledFromRemote: "已从远程仓库拉取 {0} 个文件",
+        fetchedFromRemote: "已从远程仓库获取更新",
+        noChangesToPull: "没有要拉取的更改",
+        createdBranch: "已创建新分支 {0}",
+        switchedToBranch: "已切换到分支 {0}",
+        deletedBranch: "已删除分支 {0}",
+        setUpstreamTo: "已设置上游分支为 {0}",
+        initializedRepo: "已初始化新仓库",
+        addedToGitignore: "已将 {0} 添加到 .gitignore",
+        stagedFile: "已暂存 {0}",
+        unstagedFile: "已取消暂存 {0}",
+        stageError: "暂存失败：{0}",
+        unstageError: "取消暂存失败：{0}",
+        noGitRepository: "找不到有效的 Git 仓库。请通过命令创建一个新仓库或克隆现有仓库。",
+        cannotRunGit: "无法运行 git 命令。尝试运行：'{0}'",
+        commitConflictError: "由于存在 {0} 个文件冲突，无法提交。请解决冲突后再提交。",
+        pullConflictError: "由于存在 {0} 个文件冲突，无法拉取。请解决冲突后再拉取。",
+        networkError: "Git：进入离线模式。未来的网络错误将不再显示。",
+        conflictResolutionGuide: '# 冲突\n请解决冲突并使用"Git：提交所有更改"命令提交，然后使用"Git：推送"命令推送\n（此文件将在提交前自动删除）\n\n[[#附加说明]] 在文件列表下方\n\n',
+        conflictResolutionAdditional: '\n# 附加说明\n强烈建议使用"源代码模式"查看冲突文件。对于简单的冲突，在上述每个文件中，将以下文本块替换为所需的文本。\n\n```diff\n<<<<<<< HEAD\n    本地仓库的文件更改\n=======\n    远程仓库的文件更改\n>>>>>>> origin/main\n```'
     }
 }; 
